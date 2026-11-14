@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>巡邏打卡</title>
+<style>
+:root{--bg:#0e1626;--card:#18233a;--card2:#1f2d4a;--line:#2c3c5e;--tx:#e9eef8;--mut:#8fa0c0;--acc:#f5b82e;--ok:#35c98a;--bad:#ff6464;--blue:#4c8dff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;font-size:16px}
+#app{max-width:640px;margin:0 auto;padding:14px 14px 90px}
+h2{font-size:20px;margin:6px 0 12px}
+h3{font-size:16px;margin:22px 0 8px;color:var(--acc);letter-spacing:1px}
+.hero{background:linear-gradient(135deg,#1c2b4d,#131d33);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+.hero .site{font-size:24px;font-weight:800}
+.hero .sub{color:var(--mut);margin-top:6px}
+.hero .sub b{color:var(--acc);font-size:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.slot{display:flex;align-items:center;gap:12px;cursor:pointer}
+.slot .t{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;min-width:92px}
+.slot .m{flex:1;min-width:0}
+.slot .m div:first-child{font-weight:600}
+.slot .m div:last-child{color:var(--mut);font-size:14px;margin-top:2px}
+.badge{font-size:13px;padding:4px 10px;border-radius:99px;background:var(--card2);color:var(--mut);white-space:nowrap;font-weight:600}
+.badge.ok{background:#12402e;color:var(--ok)}.badge.bad{background:#4a1d22;color:var(--bad)}.badge.go{background:#4a3a10;color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:15px;cursor:pointer}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#1a1300;font-weight:700}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;background:var(--card2);color:var(--tx);cursor:pointer;font-family:inherit}
+.btn.pri{background:var(--acc);color:#1a1300}.btn.red{background:#4a1d22;color:var(--bad)}.btn.sm{padding:6px 10px;font-size:13px}
+.btn.big{width:100%;padding:15px;font-size:17px;margin-top:10px}
+.btn.cam{background:var(--blue);color:#fff;white-space:nowrap}
+.pt{border-left:5px solid var(--line)}
+.pt.done{border-left-color:var(--ok)}.pt.isbad{border-left-color:var(--bad)}
+.pt-head{display:flex;align-items:center;gap:10px}
+.pt-head .no{width:30px;height:30px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.pt-head .nm{flex:1;font-size:18px;font-weight:700;min-width:0}
+.pt-time{color:var(--mut);font-size:13px;margin:6px 0 0 40px}
+.thumbs{display:flex;gap:10px;margin-top:10px}
+.th{width:calc(50% - 5px)}
+.th img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;display:block;background:#000}
+.th-b{display:flex;gap:6px;margin-top:6px}.th-b .btn{flex:1}
+.st{display:flex;gap:8px;margin-top:10px;align-items:center}
+.st .chip{padding:7px 14px}
+.st .chip.on.b{background:var(--bad);border-color:var(--bad);color:#fff}
+.st .chip.on.g{background:var(--ok);border-color:var(--ok);color:#03200f}
+input[type=text],input[type=time],input[type=date],input[type=number],input[type=password],select{width:100%;background:#0d1524;color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;font-family:inherit}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.row>.g{flex:1;min-width:0}
+.row .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.hint{color:var(--mut);font-size:13px;margin:4px 0 10px;line-height:1.6}
+.warn{background:#4a1d22;color:#ffd0d0;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px;line-height:1.6}
+nav{position:fixed;left:0;right:0;bottom:0;background:#0b1220;border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;max-width:213px;background:none;border:0;color:var(--mut);padding:12px 0 10px;font-size:13px;font-family:inherit;cursor:pointer}
+nav button span{display:block;font-size:22px;margin-bottom:2px}
+nav button.on{color:var(--acc);font-weight:700}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#000d;color:#fff;padding:10px 18px;border-radius:99px;font-size:15px;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:90%;text-align:center}
+#toast.on{opacity:1}
+#viewer{position:fixed;inset:0;background:#000e;display:none;place-items:center;z-index:60}
+#viewer img{max-width:100%;max-height:100%}
+table.sum{width:100%;border-collapse:collapse;font-size:14px}
+table.sum th,table.sum td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left}
+table.sum th{color:var(--mut);font-weight:500}
+.rep-img{width:100%;border-radius:8px;border:1px solid var(--line);display:block;margin-bottom:8px}
+.ok-t{color:var(--ok)}.bad-t{color:var(--bad)}
+#sync{position:sticky;top:0;z-index:20;background:#0b1220;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;padding:7px 14px;text-align:center;cursor:pointer}
+#sync.ok{color:var(--ok)}#sync.wait{color:var(--acc)}
+</style>
+</head>
+<body>
+<div id="sync" data-act="sync"></div>
+<div id="app"></div>
+<nav>
+  <button data-act="tab" data-v="home"><span>🔦</span>巡邏打卡</button>
+  <button data-act="tab" data-v="report"><span>📋</span>巡邏報告</button>
+  <button data-act="tab" data-v="settings"><span>⚙️</span>設定</button>
+</nav>
+<div id="toast"></div>
+<div id="viewer"><img alt=""></div>
+<input type="file" id="cam" accept="image/*" capture="environment" hidden>
+<input type="file" id="imp" accept=".json,application/json" hidden>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2200);}
+
+/* ---------- 儲存 ---------- */
+const Store={db:null,mem:{},
+ async init(){
+  try{
+   this.db=await new Promise((res,rej)=>{
+    const r=indexedDB.open('patrolDB',1);
+    r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('kv');d.createObjectStore('rec');};
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej('blocked');
+    setTimeout(()=>rej('timeout'),4000);
+   });
+  }catch(e){this.db=null;}
+ },
+ tx(st,mode,fn){return new Promise((res,rej)=>{const t=this.db.transaction(st,mode);const q=fn(t.objectStore(st));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});},
+ async get(st,k){return this.db?this.tx(st,'readonly',s=>s.get(k)):this.mem[st+'/'+k];},
+ async put(st,k,v){if(!this.db){this.mem[st+'/'+k]=v;return;}return this.tx(st,'readwrite',s=>s.put(v,k));},
+ async del(st,k){if(!this.db){delete this.mem[st+'/'+k];return;}return this.tx(st,'readwrite',s=>s.delete(k));},
+ async keys(st){if(!this.db)return Object.keys(this.mem).filter(k=>k.startsWith(st+'/')).map(k=>k.slice(st.length+1));return this.tx(st,'readonly',s=>s.getAllKeys());}
+};
+
+/* ---------- 設定 ---------- */
+function defaults(){
+ const pts=['大門口','中庭','地下停車場B1','環保室','機房','頂樓'].map(n=>({id:uid(),name:n}));
+ const rt={id:uid(),name:'夜間巡邏路線',pids:pts.map(p=>p.id)};
+ return{code:uid(),site:'',guards:[],points:pts,routes:[rt],
+  slots:['22:00','00:00','02:00','04:00'].map(t=>({id:uid(),time:t,routeId:rt.id})),
+  tol:30,cutoff:8,roc:true,pin:'',lastGuard:'',gas:'',token:'',
+  phrases:['一切正常','燈具不亮','門未關妥','有積水／漏水','發現可疑人士','垃圾未清','設備異音']};
+}
+let cfg=defaults(),sites=[],siteId='';
+function norm(c){const d=Object.assign(defaults(),c);if(!c.code)d.code='main';return d;}
+function setCfg(c){cfg=c;const s=sites.find(x=>x.id===siteId);if(s)s.cfg=c;}
+const recGet=k=>Store.get('rec',siteId+'|'+k),recPut=(k,v)=>Store.put('rec',siteId+'|'+k,v),recDel=k=>Store.del('rec',siteId+'|'+k);
+async function recKeys(){const p=siteId+'|';return(await Store.keys('rec')).filter(k=>String(k).startsWith(p)).map(k=>String(k).slice(p.length));}
+const siteName=c=>c.site||'未命名案場';
+async function switchSite(id){
+ if(id===siteId)return;
+ if(syncing){toast('上傳中，請稍候再切換');return;}
+ if(pend.length&&!confirm('目前案場還有 '+pend.length+' 個班次尚未上傳，切換後要切回這個案場才會補傳。確定切換？'))return;
+ siteId=id;cfg=sites.find(s=>s.id===id).cfg;cur=null;live.clear();repDate=null;repPages=[];syncErr='';
+ try{await Store.put('kv','curSite',id);pend=(await Store.get('kv','pend|'+id))||[];}catch(e){pend=[];}
+ if(view==='patrol')view='home';
+ toast('已切換到：'+siteName(cfg));await render();window.scrollTo(0,0);syncAll();
+}
+async function saveCfg(){try{await Store.put('kv','sites',sites);}catch(e){toast('儲存失敗');}}
+
+/* ---------- Google 試算表雲端 ---------- */
+const live=new Map();let pend=[],syncing=false,syncErr='';
+async function getRec(key){if(live.has(key))return live.get(key);const r=await recGet(key);if(r)live.set(key,r);return r;}
+async function api(body){
+ if(!cfg.gas)throw new Error('尚未設定雲端網址');
+ const r=await fetch(cfg.gas,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({token:cfg.token||''},body))});
+ const j=await r.json();if(!j.ok)throw new Error(j.err==='token'?'雲端密碼不正確':(j.err||'雲端錯誤'));return j;
+}
+async function markPend(key){if(!pend.includes(key)){pend.push(key);try{await Store.put('kv','pend|'+siteId,pend);}catch(e){}}}
+function touch(i){const r=cur;if(!r.inited){r.inited=true;r.pts.forEach(p=>{p.dirty=true;p.v=(p.v||0)+1;});}const p=r.pts[i];p.dirty=true;p.v=(p.v||0)+1;}
+async function saveCur(){await recPut(cur.key,cur);await markPend(cur.key);syncAll();}
+function updateSync(){
+ const el=$('#sync');if(!el)return;let t,c='';
+ if(!cfg.gas)t='☁ 尚未連接 Google 試算表（紀錄只存在這支手機）';
+ else if(syncing){t='☁ 上傳到雲端中…';c='wait';}
+ else if(pend.length){t='☁ 有 '+pend.length+' 個班次尚未上傳'+(syncErr?'（'+syncErr+'）':'')+'，點此重試';c='wait';}
+ else{t='☁ 已全部同步到 Google 試算表';c='ok';}
+ el.textContent=t;el.className=c;
+}
+async function syncAll(){
+ if(syncing||!cfg.gas||!pend.length){updateSync();return;}
+ syncing=true;updateSync();
+ try{
+  for(const key of pend.slice()){
+   const r=await getRec(key);
+   if(r)for(let i=0;i<r.pts.length;i++){
+    const p=r.pts[i];if(!p.dirty)continue;
+    const v=p.v,sent=p.photos.slice();
+    const j=await api({a:'point',site:cfg.site,code:cfg.code,date:r.date,dateText:fmtDate(r.date),slotId:r.slotId,time:r.time,routeName:r.routeName,seq:i+1,pid:p.pid,name:p.name,by:p.by||'',timeText:sent.length?fmtTime(sent[0].t,true):'',status:p.status,note:p.note,photos:sent.map(x=>x.id?{id:x.id,t:x.t}:{d:x.d,t:x.t})});
+    sent.forEach((x,k)=>{if(j.photos&&j.photos[k])x.id=j.photos[k].id;});
+    if(p.v===v)p.dirty=false;
+    await recPut(key,r);
+   }
+   if(!r||!r.pts.some(p=>p.dirty)){pend=pend.filter(k=>k!==key);await Store.put('kv','pend|'+siteId,pend);}
+  }
+  syncErr='';
+ }catch(e){syncErr=navigator.onLine===false?'目前沒有網路':(e.message||'連線失敗');}
+ syncing=false;updateSync();
+}
+const routeOf=s=>cfg.routes.find(r=>r.id===s.routeId)||cfg.routes[0];
+const pointOf=id=>cfg.points.find(p=>p.id===id);
+
+/* ---------- 日期時間 ---------- */
+function dutyDate(){const d=new Date();if(d.getHours()<cfg.cutoff)d.setDate(d.getDate()-1);return ymd(d);}
+function schedMs(date,time){const[h,m]=time.split(':').map(Number);const d=new Date(date+'T00:00:00');if(h<cfg.cutoff)d.setDate(d.getDate()+1);d.setHours(h,m,0,0);return d.getTime();}
+function fmtDate(s){const[y,m,d]=s.split('-');return(cfg.roc?(y-1911):y)+'/'+m+'/'+d;}
+function fmtTime(ms,sec){const d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())+(sec?':'+pad(d.getSeconds()):'');}
+function fmtDT(ms){return fmtDate(ymd(new Date(ms)))+' '+fmtTime(ms,true);}
+
+/* ---------- 當日資料 ---------- */
+async function dayData(date){
+ const keys=(await recKeys()).filter(k=>k.startsWith(date+'_'));
+ const recs=[];for(const k of keys){const r=await recGet(k);if(r)recs.push(r);}
+ const rows=[],used=new Set();
+ for(const s of cfg.slots){const r=recs.find(x=>x.slotId===s.id);if(r)used.add(r.key);rows.push(mkRow(date,r,s));}
+ for(const r of recs)if(!used.has(r.key))rows.push(mkRow(date,r,null));
+ rows.sort((a,b)=>a.sched-b.sched);
+ return{rows,has:recs.length>0};
+}
+function mkRow(date,r,s){
+ const time=r?r.time:s.time,sched=schedMs(date,time);
+ if(!r){const rt=routeOf(s);return{sid:s.id,time,sched,routeName:rt?rt.name:'',guards:'',done:0,total:rt?rt.pids.filter(pointOf).length:0,first:0,judge:'未巡邏',jok:false,bad:0,rec:null};}
+ const done=r.pts.filter(p=>p.photos.length).length;
+ const ts=[];r.pts.forEach(p=>p.photos.forEach(x=>ts.push(x.t)));
+ const first=ts.length?Math.min.apply(null,ts):0;
+ const guards=[...new Set(r.pts.map(p=>p.by).filter(Boolean))].join('、')||r.guard||'';
+ let judge='未打卡',jok=false;
+ if(first){const df=first-sched,mn=Math.round(Math.abs(df)/60000);
+  if(Math.abs(df)<=cfg.tol*60000){judge='準時';jok=true;}else judge=(df>0?'逾時':'提前')+mn+'分';}
+ return{sid:r.slotId,time,sched,routeName:r.routeName,guards,done,total:r.pts.length,first,judge,jok,bad:r.pts.filter(p=>p.status==='異常').length,rec:r};
+}
+
+/* ---------- 畫面 ---------- */
+let view='home',cur=null,repDate=null,unlocked=false,repPages=[];
+function setNav(){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===(view==='patrol'?'home':view)));}
+async function render(){
+ setNav();updateSync();
+ const warn=Store.db?'':'<div class="warn">⚠️ 目前的開啟方式無法保存資料，關閉後紀錄會消失。請改用瀏覽器（Chrome／Safari）以網址開啟本系統。</div>';
+ let h='';
+ if(view==='home')h=await vHome();
+ else if(view==='patrol')h=vPatrol();
+ else if(view==='report')h=await vReport();
+ else h=vSettings();
+ $('#app').innerHTML=warn+h;
+}
+
+async function vHome(){
+ const date=dutyDate(),{rows}=await dayData(date),now=Date.now();
+ let h=sites.length>1?'<div class="chips" style="margin-bottom:12px">'+sites.map(x=>'<button class="chip'+(x.id===siteId?' on':'')+'" data-act="stSwitch" data-id="'+x.id+'">'+esc(siteName(x.cfg))+'</button>').join('')+'</div>':'';
+ h+='<div class="hero"><div class="site">'+esc(cfg.site||'（請到「設定」填寫案場名稱）')+'</div><div class="sub">勤務日　<b>'+fmtDate(date)+'</b></div></div>';
+ h+='<h3>巡邏人員</h3>';
+ const bound=cfg.guards.some(g=>g.name===cfg.lastGuard);
+ if(!cfg.guards.length)h+='<div class="hint">尚未建立巡邏人員，請到「設定」新增。</div>';
+ else if(bound)h+='<div class="card" style="display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-size:20px;font-weight:800;color:var(--acc)">🔒 '+esc(cfg.lastGuard)+'</div><div class="hint" style="margin:2px 0 0">這支手機已綁定此人員，打卡都會記在他名下。</div></div><button class="btn sm" data-act="unbind">更換</button></div>';
+ else h+='<div class="hint">這支手機尚未綁定巡邏人員。請點選<b>自己的名字</b>，綁定後就不用每次選，要更換需由管理者處理。</div><div class="chips">'+cfg.guards.map(g=>'<button class="chip" data-act="guard" data-n="'+esc(g.name)+'">'+esc(g.name)+'</button>').join('')+'</div>';
+ h+='<h3>今日巡邏班次</h3>';
+ if(!rows.length)h+='<div class="hint">尚未設定巡邏時間，請到「設定」新增。</div>';
+ rows.forEach(r=>{
+  let b,c='';
+  if(r.rec&&(r.rec.end||(r.total&&r.done===r.total))){b='已完成 '+r.done+'/'+r.total;c='ok';}
+  else if(r.done){b='進行中 '+r.done+'/'+r.total;c='go';}
+  else if(now>r.sched+cfg.tol*60000){b='逾時未巡';c='bad';}
+  else if(now<r.sched-cfg.tol*60000)b='未到時間';
+  else{b='請開始巡邏';c='go';}
+  h+='<div class="card slot" data-act="open" data-sid="'+r.sid+'"><div class="t">'+r.time+'</div><div class="m"><div>'+esc(r.routeName)+'</div><div>'+(r.guards?'巡邏：'+esc(r.guards):'共 '+r.total+' 個巡邏點')+(r.bad?'　<span class="bad-t">異常 '+r.bad+'</span>':'')+'</div></div><span class="badge '+c+'">'+b+'</span></div>';
+ });
+ return h;
+}
+
+function vPatrol(){
+ const r=cur;
+ let h='<div class="row"><button class="btn sm" data-act="tab" data-v="home">‹ 返回</button><div class="g"></div><span class="badge">'+fmtDate(r.date)+'</span></div>';
+ h+='<h2>'+r.time+' 巡邏　'+esc(r.routeName)+'</h2><div class="hint">巡邏人員：<b style="color:var(--acc)">'+esc(cfg.lastGuard)+'</b>　請依序到各巡邏點拍照打卡（每點最多 2 張）。</div>';
+ r.pts.forEach((p,i)=>{
+  h+='<div class="card pt'+(p.photos.length?' done':'')+(p.status==='異常'?' isbad':'')+'">';
+  h+='<div class="pt-head"><span class="no">'+(i+1)+'</span><span class="nm">'+esc(p.name)+'</span>'+(p.photos.length<2?'<button class="btn cam" data-act="shot" data-i="'+i+'" data-k="'+p.photos.length+'">📷 拍照</button>':'')+'</div>';
+  if(p.photos.length){
+   h+='<div class="pt-time">打卡時間 '+fmtTime(p.photos[0].t,true)+'　'+esc(p.by||'')+'</div><div class="thumbs">';
+   p.photos.forEach((ph,k)=>{h+='<div class="th"><img src="'+ph.d+'" data-act="view" alt=""><div class="th-b"><button class="btn sm" data-act="shot" data-i="'+i+'" data-k="'+k+'">重拍</button><button class="btn sm red" data-act="delph" data-i="'+i+'" data-k="'+k+'">刪除</button></div></div>';});
+   h+='</div>';
+  }
+  h+='<div class="st"><button class="chip g'+(p.status==='正常'?' on':'')+'" data-act="status" data-i="'+i+'" data-s="正常">正常</button><button class="chip b'+(p.status==='異常'?' on':'')+'" data-act="status" data-i="'+i+'" data-s="異常">異常</button></div>';
+  h+='<div style="margin-top:8px"><input type="text" list="phr" placeholder="狀況說明（可不填）" value="'+esc(p.note)+'" data-chg="note" data-i="'+i+'"></div></div>';
+ });
+ h+='<datalist id="phr">'+cfg.phrases.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>';
+ h+='<button class="btn pri big" data-act="finish">✔ 完成本次巡邏</button>';
+ return h;
+}
+
+async function vReport(){
+ if(!repDate)repDate=dutyDate();
+ const dates=[...new Set((await recKeys()).map(k=>String(k).slice(0,10)))].sort().reverse().slice(0,31);
+ const{rows,has}=await dayData(repDate);
+ let h='<h2>巡邏報告</h2><div class="row"><div class="g"><input type="date" value="'+repDate+'" data-chg="repdate"></div></div>';
+ if(dates.length)h+='<div class="hint">有紀錄的日期（點選切換）</div><div class="chips">'+dates.map(d=>'<button class="chip'+(d===repDate?' on':'')+'" data-act="repd" data-d="'+d+'">'+fmtDate(d).slice(cfg.roc?4:5)+'</button>').join('')+'</div>';
+ h+='<button class="btn big" data-act="pull">☁ 從 Google 試算表載入這一天的紀錄</button>';
+ h+='<h3>'+fmtDate(repDate)+' 巡邏總覽</h3>';
+ if(!has)return h+'<div class="hint">這一天沒有巡邏紀錄。</div>';
+ h+='<div class="card"><table class="sum"><tr><th>時間</th><th>巡邏人員</th><th>完成</th><th>首次打卡</th><th>判定</th></tr>'+rows.map(r=>'<tr><td><b>'+r.time+'</b></td><td>'+esc(r.guards||'—')+'</td><td>'+r.done+'/'+r.total+(r.bad?' <span class="bad-t">異'+r.bad+'</span>':'')+'</td><td>'+(r.first?fmtTime(r.first):'—')+'</td><td class="'+(r.jok?'ok-t':'bad-t')+'">'+r.judge+'</td></tr>').join('')+'</table></div>';
+ h+='<button class="btn pri big" data-act="gen">🖼 產生巡邏報告（JPG）</button><div id="repout" style="margin-top:14px"></div>';
+ h+='<button class="btn red big" data-act="deld" style="margin-top:26px">刪除這支手機上這一天的紀錄</button><div class="hint">只刪除本機資料，Google 試算表與雲端照片不受影響。</div>';
+ return h;
+}
+
+function hmOpts(n,step,cur){let o='';const has=(+cur)%step===0;for(let i=0;i<n;i+=step)o+='<option'+(pad(i)===cur?' selected':'')+'>'+pad(i)+'</option>';if(!has)o+='<option selected>'+cur+'</option>';return o;}
+function vSettings(){
+ let h='<h2>設定</h2>';
+ h+='<h3>案場切換</h3>'+sites.map(x=>'<div class="row card" style="padding:8px 12px"><span class="lbl">'+esc(siteName(x.cfg))+'</span>'+(x.id===siteId?'<span class="badge ok">使用中</span>':'<button class="btn sm pri" data-act="stSwitch" data-id="'+x.id+'">切換</button><button class="btn sm red" data-act="stDel" data-id="'+x.id+'">刪除</button>')+'</div>').join('');
+ h+='<button class="btn" data-act="stNew">＋ 新增案場</button><div class="hint">每個案場有自己的巡邏人員、巡邏點、路線、時間與紀錄，互不影響。有兩個以上案場時，首頁最上方會出現案場按鈕，點一下就切換。以下的設定都是「使用中」這個案場的設定。</div>';
+ h+='<h3>案場名稱</h3><input type="text" value="'+esc(cfg.site)+'" placeholder="例如：○○社區" data-chg="site">';
+ h+='<h3>巡邏人員</h3>'+cfg.guards.map((g,i)=>'<div class="row card" style="padding:8px 12px"><span class="lbl">'+esc(g.name)+'</span><button class="btn sm red" data-act="gdel" data-i="'+i+'">刪除</button></div>').join('');
+ h+='<div class="row"><div class="g"><input type="text" id="gnew" placeholder="輸入姓名"></div><button class="btn pri" data-act="gadd">新增</button></div>';
+ h+='<h3>巡邏點</h3>'+cfg.points.map((p,i)=>'<div class="row card" style="padding:8px 12px"><span class="lbl">'+esc(p.name)+'</span><button class="btn sm" data-act="pren" data-i="'+i+'">改名</button><button class="btn sm red" data-act="pdel" data-i="'+i+'">刪除</button></div>').join('');
+ h+='<div class="row"><div class="g"><input type="text" id="pnew" placeholder="例如：環保室"></div><button class="btn pri" data-act="padd">新增</button></div><div class="hint">新增的巡邏點會自動加入第一條路線的最後面。</div>';
+ h+='<h3>巡邏路線（順序即巡邏順序）</h3>';
+ cfg.routes.forEach((r,ri)=>{
+  h+='<div class="card"><div class="row"><div class="g"><input type="text" value="'+esc(r.name)+'" data-chg="rname" data-r="'+ri+'"></div>'+(cfg.routes.length>1?'<button class="btn sm red" data-act="rdel" data-r="'+ri+'">刪除路線</button>':'')+'</div>';
+  r.pids.forEach((pid,i)=>{const p=pointOf(pid);if(!p)return;
+   h+='<div class="row"><span class="badge">'+(i+1)+'</span><span class="lbl">'+esc(p.name)+'</span><button class="btn sm" data-act="rup" data-r="'+ri+'" data-i="'+i+'">↑</button><button class="btn sm" data-act="rdn" data-r="'+ri+'" data-i="'+i+'">↓</button><button class="btn sm red" data-act="rrm" data-r="'+ri+'" data-i="'+i+'">移除</button></div>';});
+  const rest=cfg.points.filter(p=>!r.pids.includes(p.id));
+  if(rest.length)h+='<select data-chg="radd" data-r="'+ri+'"><option value="">＋ 加入巡邏點…</option>'+rest.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('')+'</select>';
+  h+='</div>';
+ });
+ h+='<button class="btn" data-act="rnew">＋ 新增路線</button>';
+ h+='<h3>巡邏時間</h3>';
+ cfg.slots.forEach((s,i)=>{h+='<div class="row"><div style="width:74px"><select data-chg="sh" data-i="'+i+'">'+hmOpts(24,1,s.time.slice(0,2))+'</select></div><b>:</b><div style="width:74px"><select data-chg="sm" data-i="'+i+'">'+hmOpts(60,5,s.time.slice(3,5))+'</select></div><div class="g"><select data-chg="sroute" data-i="'+i+'">'+cfg.routes.map(r=>'<option value="'+r.id+'"'+(r.id===s.routeId?' selected':'')+'>'+esc(r.name)+'</option>').join('')+'</select></div><button class="btn sm red" data-act="sdel" data-i="'+i+'">刪除</button></div>';});
+ h+='<button class="btn" data-act="snew">＋ 新增巡邏時間</button><div class="hint">時間為 24 小時制：00 是凌晨 12 點，12 是中午。</div>';
+ h+='<h3>其他</h3>';
+ h+='<div class="row"><span class="lbl">準時容許誤差（分鐘）</span><div style="width:100px"><input type="number" min="0" value="'+cfg.tol+'" data-chg="tol"></div></div>';
+ h+='<div class="row"><span class="lbl">凌晨幾點前算前一天的勤務</span><div style="width:100px"><input type="number" min="0" max="12" value="'+cfg.cutoff+'" data-chg="cutoff"></div></div><div class="hint">例如設 8：凌晨 00:00～07:59 的巡邏會併入前一晚的報告。不需要請設 0。</div>';
+ h+='<div class="row"><span class="lbl">日期格式</span><div style="width:150px"><select data-chg="roc"><option value="1"'+(cfg.roc?' selected':'')+'>民國 115/11/14</option><option value="0"'+(cfg.roc?'':' selected')+'>西元 2026/11/14</option></select></div></div>';
+ h+='<div class="hint">常用狀況語（以頓號「、」分隔，巡邏時可快速選用）</div><input type="text" value="'+esc(cfg.phrases.join('、'))+'" data-chg="phr">';
+ h+='<div class="row" style="margin-top:12px"><span class="lbl">設定頁管理密碼</span><div style="width:150px"><input type="password" value="'+esc(cfg.pin)+'" placeholder="不設則留空" data-chg="pin"></div></div><div class="hint">設定後，要進入設定頁或更換這支手機綁定的巡邏人員，都必須輸入此密碼。</div>';
+ h+='<h3>Google 雲端試算表</h3><div class="hint">貼上 Apps Script 部署後的網址（https://script.google.com/macros/s/…/exec）。填好後，每次打卡會自動上傳到試算表，照片存到雲端硬碟。</div>';
+ h+='<input type="text" value="'+esc(cfg.gas)+'" placeholder="https://script.google.com/macros/s/…/exec" data-chg="gas">';
+ h+='<div class="row" style="margin-top:8px"><span class="lbl">雲端密碼</span><div style="width:170px"><input type="password" value="'+esc(cfg.token)+'" placeholder="與程式碼中相同" data-chg="token"></div></div>';
+ h+='<div class="row"><button class="btn pri g" data-act="ctest">測試連線</button></div><div class="row"><button class="btn g" data-act="cup">上傳設定到雲端</button><button class="btn g" data-act="cdown">從雲端下載設定</button></div><div class="hint">主要手機設定好後按「上傳設定」，其他巡邏人員的手機填好網址與密碼後按「下載設定」，就會有相同的巡邏點、路線、時間與人員。</div>';
+ h+='<h3>設定備份</h3><div class="hint">在一支手機設定好後，可匯出設定檔傳到其他巡邏人員的手機匯入，不必重設。（含雲端網址與雲端密碼，不含巡邏紀錄與照片）</div><div class="row"><button class="btn g" data-act="exp">匯出設定檔</button><button class="btn g" data-act="imp">匯入設定檔</button></div>';
+ h+='<h3 style="color:var(--bad)">一鍵清空</h3><div class="hint">刪除「'+esc(siteName(cfg))+'」的<b>全部巡邏紀錄與照片</b>，包含這支手機、Google 試算表與雲端硬碟中的照片。案場設定（人員、巡邏點、路線、時間）不會被刪除。刪除後無法復原。</div><button class="btn red big" data-act="clearall">🗑 清空此案場全部巡邏紀錄（含雲端）</button>';
+ return h;
+}
+
+/* ---------- 拍照加浮水印 ---------- */
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('img'));i.src=src;});}
+async function stampPhoto(file,place,when){
+ const url=URL.createObjectURL(file);
+ let img;try{img=await loadImg(url);}finally{setTimeout(()=>URL.revokeObjectURL(url),3000);}
+ let w=img.naturalWidth,h=img.naturalHeight;const s=Math.min(1,1280/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);
+ const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(img,0,0,w,h);
+ const fs=Math.max(20,Math.round(Math.min(w,h)*0.05)),f2=Math.round(fs*0.62),ff='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+ const l3=[cfg.site,cfg.lastGuard].filter(Boolean).join('｜');
+ x.font='bold '+fs+'px '+ff;let bw=Math.max(x.measureText(place).width,x.measureText(fmtDT(when)).width);
+ x.font=f2+'px '+ff;bw=Math.max(bw,x.measureText(l3).width);
+ const pd=Math.round(fs*0.5),bh=fs*2.5+(l3?f2*1.5:0)+pd*2,bx=w-bw-pd*3,by=h-bh-pd;
+ x.fillStyle='rgba(0,0,0,.6)';x.fillRect(bx,by,bw+pd*2,bh);
+ x.textAlign='right';x.textBaseline='top';const rx=w-pd*2;
+ x.font='bold '+fs+'px '+ff;x.fillStyle='#ffd24a';x.fillText(place,rx,by+pd);
+ x.fillStyle='#fff';x.fillText(fmtDT(when),rx,by+pd+fs*1.25);
+ if(l3){x.font=f2+'px '+ff;x.fillStyle='#dfe6f5';x.fillText(l3,rx,by+pd+fs*2.55);}
+ return c.toDataURL('image/jpeg',0.82);
+}
+let shotT=null;
+$('#cam').addEventListener('change',async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f||!shotT||!cur)return;
+ const p=cur.pts[shotT.i],k=shotT.k,when=Date.now();
+ try{
+  toast('處理照片中…');
+  const d=await stampPhoto(f,p.name,when);
+  if(k<p.photos.length)p.photos[k]={d,t:when};else if(p.photos.length<2)p.photos.push({d,t:when});
+  p.by=cfg.lastGuard;if(!p.status)p.status='正常';if(!cur.start)cur.start=when;
+  touch(shotT.i);await saveCur();toast('✔ '+p.name+' 打卡完成');
+ }catch(err){toast('照片處理或儲存失敗，請重拍');}
+ render();
+});
+
+/* ---------- 報告 JPG ---------- */
+function wrapText(x,t,mw){const out=[];let l='';for(const ch of String(t)){if(x.measureText(l+ch).width>mw&&l){out.push(l);l=ch;}else l+=ch;}if(l)out.push(l);return out;}
+async function buildReport(date){
+ const{rows}=await dayData(date),W=1080,M=40,FF='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+ const imgs=new Map();
+ for(const r of rows)if(r.rec)for(const p of r.rec.pts)for(const ph of p.photos){try{imgs.set(ph,await loadImg(ph.d));}catch(e){}}
+ const blocks=[];
+ const F=(x,sz,b)=>{x.font=(b?'bold ':'')+sz+'px '+FF;};
+ blocks.push({h:200,draw(x,y){x.fillStyle='#14213d';x.fillRect(0,y,W,200);x.fillStyle='#f5b82e';x.fillRect(0,y+192,W,8);
+  x.fillStyle='#fff';F(x,50,1);x.fillText(cfg.site||'（未設定案場）',M,y+82);F(x,34,0);x.fillText('巡邏報告',M,y+142);
+  x.textAlign='right';F(x,40,1);x.fillStyle='#f5b82e';x.fillText(fmtDate(date),W-M,y+82);F(x,22,0);x.fillStyle='#c8d2e8';x.fillText('製表時間 '+fmtDT(Date.now()),W-M,y+142);x.textAlign='left';}});
+ const cols=[M,170,410,580,790,920],hd=['時間','路線','巡邏人員','完成','首次打卡','判定'];
+ blocks.push({h:70+56+rows.length*56+20,draw(x,y){F(x,30,1);x.fillStyle='#14213d';x.fillText('巡邏總覽',M,y+50);
+  let ty=y+70;x.fillStyle='#e8edf7';x.fillRect(M-10,ty,W-M*2+20,56);F(x,24,1);x.fillStyle='#333';hd.forEach((t,i)=>x.fillText(t,cols[i],ty+37));
+  rows.forEach(r=>{ty+=56;F(x,24,0);x.fillStyle='#222';
+   const v=[r.time,r.routeName,r.guards||'—',r.done+'/'+r.total+(r.bad?'（異常'+r.bad+'）':''),r.first?fmtTime(r.first):'—',r.judge];
+   v.forEach((t,i)=>{x.fillStyle=i===5?(r.jok?'#12905a':'#d43030'):'#222';if(i===0||i===5)F(x,24,1);else F(x,24,0);
+    let s=String(t);const mw=(cols[i+1]||W-M)-cols[i]-10;while(s.length>1&&x.measureText(s).width>mw)s=s.slice(0,-1);x.fillText(s,cols[i],ty+37);});
+   x.strokeStyle='#d5dbe8';x.beginPath();x.moveTo(M-10,ty+56);x.lineTo(W-M+10,ty+56);x.stroke();});}});
+ for(const r of rows){
+  blocks.push({h:86,draw(x,y){x.fillStyle='#14213d';x.fillRect(M-10,y+14,W-M*2+20,62);x.fillStyle='#fff';F(x,28,1);
+   x.fillText(r.time+' 巡邏｜'+r.routeName,M+6,y+55);x.textAlign='right';F(x,24,0);x.fillText((r.guards?'巡邏人員：'+r.guards+'　':'')+r.judge,W-M-6,y+54);x.textAlign='left';}});
+  if(!r.rec){blocks.push({h:70,draw(x,y){F(x,26,1);x.fillStyle='#d43030';x.fillText('本班次未執行巡邏',M+6,y+45);}});continue;}
+  r.rec.pts.forEach((p,i)=>{
+   const has=p.photos.length>0;
+   blocks.push({h:has?252:92,draw(x,y){
+    F(x,30,1);x.fillStyle='#14213d';x.fillText((i+1)+'. '+p.name,M+6,y+48);
+    if(!has){F(x,24,1);x.fillStyle='#d43030';x.fillText('未打卡',M+6,y+80);
+     if(p.note){F(x,22,0);x.fillStyle='#444';x.fillText('說明：'+p.note,M+120,y+80);}}
+    else{F(x,23,0);x.fillStyle='#444';x.fillText('打卡 '+fmtTime(p.photos[0].t,true)+(p.by?'　'+p.by:''),M+6,y+86);
+     F(x,25,1);x.fillStyle=p.status==='異常'?'#d43030':'#12905a';x.fillText('狀況：'+(p.status||'正常'),M+6,y+124);
+     if(p.note){F(x,22,0);x.fillStyle='#333';wrapText(x,'說明：'+p.note,400).slice(0,3).forEach((l,k)=>x.fillText(l,M+6,y+160+k*30));}
+     p.photos.forEach((ph,k)=>{const im=imgs.get(ph),bx=470+k*290,by=y+16,bw=280,bh=210;x.fillStyle='#111';x.fillRect(bx,by,bw,bh);
+      if(im){const s=Math.min(bw/im.naturalWidth,bh/im.naturalHeight),dw=im.naturalWidth*s,dh=im.naturalHeight*s;x.drawImage(im,bx+(bw-dw)/2,by+(bh-dh)/2,dw,dh);}});}
+    x.strokeStyle='#d5dbe8';x.beginPath();x.moveTo(M-10,y+this.h-6);x.lineTo(W-M+10,y+this.h-6);x.stroke();}});
+  });
+ }
+ blocks.push({h:170,draw(x,y){F(x,26,0);x.fillStyle='#222';x.fillText('巡邏人員簽名：________________',M,y+90);x.fillText('總幹事簽核：________________',560,y+90);
+  F(x,18,0);x.fillStyle='#888';x.fillText('本報告由巡邏打卡系統自動產生',M,y+145);}});
+ const MAXH=13000,pages=[];let pg=[],ph=0;
+ for(const b of blocks){if(ph+b.h>MAXH&&pg.length){pages.push(pg);pg=[];ph=0;}pg.push(b);ph+=b.h;}
+ if(pg.length)pages.push(pg);
+ const out=[];
+ for(let n=0;n<pages.length;n++){
+  const hh=pages[n].reduce((a,b)=>a+b.h,0),c=document.createElement('canvas');c.width=W;c.height=hh;
+  const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,hh);x.textBaseline='alphabetic';
+  let y=0;for(const b of pages[n]){b.draw(x,y);y+=b.h;}
+  const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',0.9));
+  const nm='巡邏報告_'+(cfg.site||'案場')+'_'+fmtDate(date).replace(/\//g,'')+(pages.length>1?'_'+(n+1):'')+'.jpg';
+  out.push({blob,name:nm,url:URL.createObjectURL(blob)});
+ }
+ return out;
+}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();}
+
+/* ---------- 動作 ---------- */
+const A={
+ async tab(d){
+  if(d.v==='settings'&&cfg.pin&&!unlocked){const p=prompt('請輸入管理密碼');if(p===null)return;if(p!==cfg.pin){toast('密碼錯誤');return;}unlocked=true;}
+  view=d.v;cur=null;await render();window.scrollTo(0,0);},
+ async guard(d){
+  if(!confirm('這支手機要綁定為「'+d.n+'」嗎？\n綁定後所有打卡都會記在此人名下，要更換需輸入管理密碼。'))return;
+  cfg.lastGuard=d.n;await saveCfg();toast('已綁定：'+d.n);render();},
+ async unbind(){
+  if(cfg.pin){const p=prompt('更換綁定人員需輸入管理密碼');if(p===null)return;if(p!==cfg.pin){toast('密碼錯誤');return;}}
+  else if(!confirm('尚未設定管理密碼，任何人都能更換綁定。\n（管理者可到「設定」最下方設定管理密碼）\n\n確定要解除「'+cfg.lastGuard+'」的綁定？'))return;
+  cfg.lastGuard='';await saveCfg();render();},
+ async open(d){
+  if(!cfg.guards.some(g=>g.name===cfg.lastGuard)){toast('請先綁定巡邏人員（點選自己的名字）');return;}
+  const date=dutyDate(),key=date+'_'+d.sid;let r=await getRec(key);
+  if(!r){const s=cfg.slots.find(x=>x.id===d.sid);if(!s)return;const rt=routeOf(s);
+   const pts=(rt?rt.pids:[]).map(pointOf).filter(Boolean);if(!pts.length){toast('此路線尚未設定巡邏點');return;}
+   r={key,date,slotId:s.id,time:s.time,routeName:rt.name,guard:cfg.lastGuard,start:0,end:0,pts:pts.map(p=>({pid:p.id,name:p.name,status:'',note:'',photos:[],by:''}))};live.set(key,r);}
+  cur=r;view='patrol';await render();window.scrollTo(0,0);},
+ shot(d){shotT={i:+d.i,k:+d.k};$('#cam').click();},
+ async delph(d){if(!confirm('確定刪除這張照片？'))return;const p=cur.pts[+d.i];p.photos.splice(+d.k,1);touch(+d.i);await saveCur();render();},
+ async status(d){const p=cur.pts[+d.i];p.status=d.s;p.by=p.by||cfg.lastGuard;touch(+d.i);await saveCur();render();},
+ view(d,el){const v=$('#viewer');v.querySelector('img').src=el.src;v.style.display='grid';},
+ async finish(){
+  const miss=cur.pts.filter(p=>!p.photos.length).map(p=>p.name);
+  if(miss.length&&!confirm('還有 '+miss.length+' 個點未打卡：\n'+miss.join('、')+'\n\n確定要結束本次巡邏？'))return;
+  if(!cur.pts.some(p=>p.photos.length||p.note||p.status)){view='home';cur=null;render();return;}
+  cur.end=Date.now();await recPut(cur.key,cur);toast('本次巡邏已完成');view='home';cur=null;render();window.scrollTo(0,0);},
+ repd(d){repDate=d.d;render();},
+ stSwitch(d){switchSite(d.id);},
+ async stNew(){
+  const n=prompt('請輸入新案場名稱');if(!n||!n.trim())return;
+  const c=Object.assign(defaults(),{site:n.trim(),gas:cfg.gas,token:cfg.token,pin:cfg.pin,roc:cfg.roc,tol:cfg.tol,cutoff:cfg.cutoff,phrases:cfg.phrases.slice()}),id=uid();
+  sites.push({id,cfg:c});await saveCfg();await switchSite(id);
+ },
+ async stDel(d){
+  const t=sites.find(x=>x.id===d.id);if(!t||t.id===siteId)return;
+  if(!confirm('從這支手機刪除案場「'+siteName(t.cfg)+'」及其留在手機裡的紀錄？（雲端資料不受影響）'))return;
+  for(const k of await Store.keys('rec'))if(String(k).startsWith(t.id+'|'))await Store.del('rec',k);
+  await Store.del('kv','pend|'+t.id);sites=sites.filter(x=>x.id!==t.id);await saveCfg();toast('已刪除');render();
+ },
+ async clearall(){
+  const nm=siteName(cfg);
+  if(syncing){toast('上傳中，請稍候再試');return;}
+  if(!confirm('將刪除「'+nm+'」的全部巡邏紀錄與照片'+(cfg.gas?'（包含 Google 試算表與雲端照片）':'')+'，刪除後無法復原。確定嗎？'))return;
+  if(prompt('最後確認：請輸入「刪除」兩個字')!=='刪除'){toast('已取消，沒有刪除任何資料');return;}
+  try{
+   if(cfg.gas){let left=1,n=0;while(left>0){toast('雲端刪除中…'+(n?'已刪 '+n+' 筆':''));const j=await api({a:'clear',code:cfg.code});n+=j.done||0;left=j.left||0;if(!j.done&&left>0)throw new Error('雲端刪除沒有進展');}}
+  }catch(e){const m=e.message||'';toast('雲端刪除失敗：'+m+(m.includes('未知')?'（請先更新試算表程式碼並重新部署）':'')+'，手機資料未刪除');return;}
+  for(const k of await recKeys())await recDel(k);
+  pend=[];await Store.put('kv','pend|'+siteId,pend);live.clear();cur=null;repPages=[];
+  toast('已清空「'+nm+'」的全部巡邏紀錄');render();
+ },
+ sync(){if(!cfg.gas){toast('請到「設定」填寫 Google 試算表網址');return;}syncAll();},
+ async pull(){
+  if(!cfg.gas){toast('請先到「設定」填寫 Google 試算表網址');return;}
+  try{
+   toast('從雲端讀取中…');const j=await api({a:'day',code:cfg.code,date:repDate}),by={};let n=0;
+   j.rows.forEach(x=>(by[x.slotId]=by[x.slotId]||[]).push(x));
+   for(const sid in by){
+    const list=by[sid].sort((a,b)=>a.seq-b.seq),key=repDate+'_'+sid;let r=await getRec(key);
+    if(!r){r={key,date:repDate,slotId:sid,time:list[0].time,routeName:list[0].routeName,guard:'',start:0,end:0,inited:true,pts:[]};live.set(key,r);}
+    for(const x of list){
+     let p=r.pts.find(q=>q.pid===x.pid);if(!p){p={pid:x.pid,name:x.name,status:'',note:'',photos:[],by:''};r.pts.push(p);}
+     if(p.dirty)continue;
+     p.name=x.name;p.status=x.status||'';p.note=x.note||'';p.by=x.by||'';const ph=[];
+     for(const c of (x.photos||[])){const old=p.photos.find(o=>o.id===c.id||o.t===c.t);
+      if(old){old.id=c.id;ph.push(old);}else{const d=await api({a:'photo',id:c.id});ph.push({d:d.d,t:c.t,id:c.id});toast('下載照片中…第 '+(++n)+' 張');}}
+     p.photos=ph;
+    }
+    await recPut(key,r);
+   }
+   toast(j.rows.length?'已載入雲端紀錄':'雲端沒有這一天的紀錄');render();
+  }catch(e){toast('讀取失敗：'+(e.message||''));}
+ },
+ async ctest(){try{toast('連線測試中…');await api({a:'ping'});toast('✔ 連線成功');syncAll();}catch(e){toast('連線失敗：'+(e.message||''));}},
+ async cup(){if(!confirm('把這支手機的設定上傳到雲端，取代雲端上的設定？'))return;try{await api({a:'setcfg',cfg:Object.assign({},cfg,{lastGuard:'',pin:'',gas:'',token:''})});toast('✔ 設定已上傳');}catch(e){toast('上傳失敗：'+(e.message||''));}},
+ async cdown(){
+  if(!confirm('從雲端下載設定，取代這支手機上相同案場的設定？'))return;
+  try{
+   const j=await api({a:'getcfg'}),list=(j.sites||(j.cfg?[j.cfg]:[])).filter(c=>c&&Array.isArray(c.points)).map(norm);
+   if(!list.length){toast('雲端還沒有設定，請先從主要手機上傳');return;}
+   const keep={gas:cfg.gas,token:cfg.token,pin:cfg.pin};let blank=!cfg.site&&!cfg.guards.length;
+   for(const c of list){
+    let t=sites.find(x=>x.cfg.code===c.code);
+    if(!t&&blank){t=sites.find(x=>x.id===siteId);blank=false;}
+    if(t){const lg=t.cfg.lastGuard;t.cfg=Object.assign(c,keep,{lastGuard:c.guards.some(g=>g.name===lg)?lg:''});}
+    else sites.push({id:uid(),cfg:Object.assign(c,keep,{lastGuard:''})});
+   }
+   cfg=sites.find(x=>x.id===siteId).cfg;await saveCfg();toast('✔ 已下載 '+list.length+' 個案場的設定');render();
+  }catch(e){toast('下載失敗：'+(e.message||''));}
+ },
+ async gen(){
+  const o=$('#repout');o.innerHTML='<div class="hint">報告產生中，請稍候…</div>';
+  try{repPages.forEach(p=>URL.revokeObjectURL(p.url));repPages=await buildReport(repDate);}catch(e){o.innerHTML='<div class="warn">報告產生失敗，請再試一次。</div>';return;}
+  const canShare=!!(navigator.canShare&&window.File);
+  o.innerHTML=repPages.map((p,i)=>'<img class="rep-img" src="'+p.url+'" alt=""><div class="row"><button class="btn pri g" data-act="dl" data-i="'+i+'">⬇ 下載 JPG</button>'+(canShare?'<button class="btn g" data-act="share" data-i="'+i+'">分享（LINE 等）</button>':'')+'</div>').join('')+'<div class="hint">若下載鈕沒反應，可長按上方圖片選擇「儲存圖片」。</div>';
+ },
+ dl(d){const p=repPages[+d.i];download(p.blob,p.name);},
+ async share(d){const p=repPages[+d.i];try{const f=new File([p.blob],p.name,{type:'image/jpeg'});if(navigator.canShare({files:[f]}))await navigator.share({files:[f],title:p.name});else toast('此裝置不支援分享，請用下載');}catch(e){}},
+ async deld(){if(!confirm('確定刪除這支手機上 '+fmtDate(repDate)+' 的巡邏紀錄與照片？'))return;
+  for(const k of (await recKeys()).filter(k=>k.startsWith(repDate+'_'))){await recDel(k);live.delete(k);pend=pend.filter(x=>x!==k);}await Store.put('kv','pend|'+siteId,pend);toast('已刪除');render();},
+ // 設定
+ async gadd(){const v=$('#gnew').value.trim();if(!v)return;if(cfg.guards.some(g=>g.name===v)){toast('已有相同姓名');return;}cfg.guards.push({id:uid(),name:v});await saveCfg();render();},
+ async gdel(d){const g=cfg.guards[+d.i];if(!confirm('刪除巡邏人員「'+g.name+'」？（不影響既有紀錄）'))return;cfg.guards.splice(+d.i,1);if(cfg.lastGuard===g.name)cfg.lastGuard='';await saveCfg();render();},
+ async padd(){const v=$('#pnew').value.trim();if(!v)return;const p={id:uid(),name:v};cfg.points.push(p);if(cfg.routes[0])cfg.routes[0].pids.push(p.id);await saveCfg();render();},
+ async pren(d){const p=cfg.points[+d.i],v=prompt('巡邏點名稱',p.name);if(!v||!v.trim())return;p.name=v.trim();await saveCfg();render();},
+ async pdel(d){const p=cfg.points[+d.i];if(!confirm('刪除巡邏點「'+p.name+'」？（不影響既有紀錄）'))return;cfg.points.splice(+d.i,1);cfg.routes.forEach(r=>r.pids=r.pids.filter(x=>x!==p.id));await saveCfg();render();},
+ async rnew(){cfg.routes.push({id:uid(),name:'路線'+(cfg.routes.length+1),pids:[]});await saveCfg();render();},
+ async rdel(d){const r=cfg.routes[+d.r];if(!confirm('刪除路線「'+r.name+'」？'))return;cfg.routes.splice(+d.r,1);cfg.slots.forEach(s=>{if(s.routeId===r.id)s.routeId=cfg.routes[0].id;});await saveCfg();render();},
+ async rup(d){const a=cfg.routes[+d.r].pids,i=+d.i;if(i<1)return;[a[i-1],a[i]]=[a[i],a[i-1]];await saveCfg();render();},
+ async rdn(d){const a=cfg.routes[+d.r].pids,i=+d.i;if(i>=a.length-1)return;[a[i+1],a[i]]=[a[i],a[i+1]];await saveCfg();render();},
+ async rrm(d){cfg.routes[+d.r].pids.splice(+d.i,1);await saveCfg();render();},
+ async snew(){cfg.slots.push({id:uid(),time:'23:00',routeId:cfg.routes[0].id});await saveCfg();render();},
+ async sdel(d){if(!confirm('刪除巡邏時間 '+cfg.slots[+d.i].time+'？'))return;cfg.slots.splice(+d.i,1);await saveCfg();render();},
+ exp(){const c=Object.assign({},cfg,{lastGuard:'',pin:''});download(new Blob([JSON.stringify(c,null,1)],{type:'application/json'}),'巡邏打卡設定_'+(cfg.site||'案場')+'.json');},
+ imp(){$('#imp').click();}
+};
+const C={
+ async note(d,el){cur.pts[+d.i].note=el.value.trim();touch(+d.i);await saveCur();},
+ repdate(d,el){if(el.value){repDate=el.value;render();}},
+ async site(d,el){cfg.site=el.value.trim();await saveCfg();toast('已儲存');},
+ async rname(d,el){cfg.routes[+d.r].name=el.value.trim()||'路線';await saveCfg();render();},
+ async radd(d,el){if(!el.value)return;cfg.routes[+d.r].pids.push(el.value);await saveCfg();render();},
+ async sh(d,el){const t=cfg.slots[+d.i];t.time=el.value+':'+t.time.slice(3,5);await saveCfg();toast('已儲存 '+t.time);},
+ async sm(d,el){const t=cfg.slots[+d.i];t.time=t.time.slice(0,2)+':'+el.value;await saveCfg();toast('已儲存 '+t.time);},
+ async sroute(d,el){cfg.slots[+d.i].routeId=el.value;await saveCfg();toast('已儲存');},
+ async tol(d,el){cfg.tol=Math.max(0,parseInt(el.value)||0);await saveCfg();toast('已儲存');},
+ async cutoff(d,el){cfg.cutoff=Math.min(12,Math.max(0,parseInt(el.value)||0));await saveCfg();toast('已儲存');},
+ async roc(d,el){cfg.roc=el.value==='1';await saveCfg();toast('已儲存');},
+ async phr(d,el){cfg.phrases=el.value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);await saveCfg();toast('已儲存');},
+ async gas(d,el){cfg.gas=el.value.trim();await saveCfg();toast('已儲存');updateSync();},
+ async token(d,el){cfg.token=el.value;await saveCfg();toast('已儲存');},
+ async pin(d,el){cfg.pin=el.value;unlocked=true;await saveCfg();toast(cfg.pin?'已設定管理密碼':'已取消管理密碼');}
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const f=A[b.dataset.act];if(f)f(b.dataset,b);});
+document.addEventListener('change',e=>{const t=e.target,f=t.dataset&&C[t.dataset.chg];if(f)f(t.dataset,t);});
+$('#viewer').addEventListener('click',()=>{$('#viewer').style.display='none';});
+$('#imp').addEventListener('change',async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const o=JSON.parse(await f.text());if(!Array.isArray(o.points)||!Array.isArray(o.routes)||!Array.isArray(o.slots))throw 0;
+  if(!confirm('匯入後會取代這支手機目前的設定（巡邏紀錄不受影響），確定？'))return;
+  setCfg(Object.assign(norm(o),{lastGuard:''}));await saveCfg();toast('設定已匯入');render();
+ }catch(err){toast('檔案格式不正確');}
+});
+(async()=>{
+ await Store.init();
+ try{
+  sites=(await Store.get('kv','sites'))||[];
+  if(!sites.length){
+   const old=await Store.get('kv','cfg'),id=uid();sites=[{id,cfg:old?norm(old):defaults()}];siteId=id;
+   if(old){
+    for(const k of await Store.keys('rec'))if(!String(k).includes('|')){const r=await Store.get('rec',k);await Store.put('rec',id+'|'+k,r);await Store.del('rec',k);}
+    const op=await Store.get('kv','pend');if(op)await Store.put('kv','pend|'+id,op);
+   }
+   await Store.put('kv','sites',sites);await Store.put('kv','curSite',id);
+  }else{
+   sites.forEach(x=>x.cfg=norm(x.cfg));siteId=await Store.get('kv','curSite');
+   if(!sites.some(x=>x.id===siteId))siteId=sites[0].id;
+  }
+  cfg=sites.find(x=>x.id===siteId).cfg;
+  pend=(await Store.get('kv','pend|'+siteId))||[];
+ }catch(e){siteId='m';sites=[{id:'m',cfg}];}
+ render();syncAll();
+ setInterval(()=>{if(view==='home')render();syncAll();},60000);
+ window.addEventListener('online',syncAll);
+})();
+</script>
+</body>
+</html>
